@@ -88,7 +88,8 @@ public class AdditionalServiceManager {
             additionalService.getExpiration().toZonedDateTime(event.getZoneId()),
             additionalService.getVat(),
             additionalService.getVatType(),
-            Optional.ofNullable(additionalService.getPrice()).map(p -> MonetaryUtil.unitToCents(p, event.getCurrency())).orElse(0));
+            Optional.ofNullable(additionalService.getPrice()).map(p -> MonetaryUtil.unitToCents(p, event.getCurrency())).orElse(0),
+            additionalService.getSupplementPolicy().name());
         preGenerateItems(additionalServiceId, event, additionalService);
         return result;
     }
@@ -471,7 +472,7 @@ public class AdditionalServiceManager {
         Validate.isTrue(Arrays.stream(results).allMatch(i -> i == 1));
 
         // we attach all those without policy to the first ticket (donations)
-        var firstTicketId = ticketIds.stream().findFirst().map(first -> List.of(first)).get();
+        var firstTicketId = ticketIds.stream().findFirst().map(List::of).orElseThrow();
         var noPoliciesParameterSources = additionalServicesForEvent.stream()
             .filter(as -> as.getSupplementPolicy() == null && additionalServiceReservationList.stream().anyMatch(findAdditionalServiceRequest(as)))
             .flatMap(as -> linkWithEveryTicket(reservationId, additionalServiceReservationList, bookedItems, firstTicketId, as))

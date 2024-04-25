@@ -28,6 +28,7 @@ import alfio.model.PurchaseContext.PurchaseContextType;
 import alfio.model.TicketReservation.TicketReservationStatus;
 import alfio.model.decorator.TicketPriceContainer;
 import alfio.model.metadata.AlfioMetadata;
+import alfio.model.metadata.SubscriptionMetadata;
 import alfio.model.metadata.TicketMetadata;
 import alfio.model.metadata.TicketMetadataContainer;
 import alfio.model.modification.AdminReservationModification;
@@ -46,12 +47,13 @@ import alfio.repository.*;
 import alfio.repository.user.UserRepository;
 import alfio.util.*;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -92,11 +94,11 @@ import static org.apache.commons.lang3.StringUtils.firstNonBlank;
 import static org.apache.commons.lang3.StringUtils.trimToNull;
 
 @Component
-@Log4j2
 @RequiredArgsConstructor
 public class AdminReservationManager {
 
     private static final ErrorCode ERROR_CANNOT_CANCEL_CHECKED_IN_TICKETS = ErrorCode.custom("remove-reservation.failed", "This reservation contains checked-in tickets. Unable to cancel it.");
+    private static final Logger log = LoggerFactory.getLogger(AdminReservationManager.class);
     private final PurchaseContextManager purchaseContextManager;
     private final EventManager eventManager;
     private final TicketReservationManager ticketReservationManager;
@@ -984,6 +986,16 @@ public class AdminReservationManager {
     public Result<List<LightweightMailMessage>> getEmailsForReservation(PurchaseContextType purchaseContextType, String publicIdentifier, String reservationId, String username) {
         return loadReservation(purchaseContextType, publicIdentifier, reservationId, username)
             .map(res -> notificationManager.loadAllMessagesForReservationId(res.getRight(), reservationId));
+    }
+
+    @Transactional
+    public List<TicketWithMetadataAttributes> findTicketsWithMetadata(String reservationId) {
+        return ticketRepository.findTicketsInReservationWithMetadata(reservationId);
+    }
+
+    @Transactional
+    public SubscriptionMetadata findSubscriptionMetadata(UUID subscriptionId) {
+        return subscriptionRepository.getSubscriptionMetadata(subscriptionId);
     }
 
     private void removeTicketsFromReservation(TicketReservation reservation,

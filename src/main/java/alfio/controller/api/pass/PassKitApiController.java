@@ -22,6 +22,8 @@ import alfio.model.Ticket;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,15 +31,17 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Optional;
 
+import static alfio.util.ExportUtils.markAsNoIndex;
+
 /**
  * https://developer.apple.com/library/archive/documentation/PassKit/Reference/PassKit_WebService/WebService.html
  */
 @RestController
 @RequestMapping("/api/pass/event/{eventName}/v1")
-@Log4j2
 @RequiredArgsConstructor
 public class PassKitApiController {
 
+    private static final Logger log = LoggerFactory.getLogger(PassKitApiController.class);
     private final PassKitManager passKitManager;
 
 
@@ -77,6 +81,7 @@ public class PassKitApiController {
             response.setContentType("application/vnd.apple.pkpass");
             if (addFilename) {
                 response.setHeader("Content-Disposition", "attachment; filename=Passbook-"+ticket.getUuid().substring(0, 8)+".pkpass");
+                markAsNoIndex(response);
             }
             passKitManager.writePass(ticket, eventAndOrganizationId, os);
         } catch (Exception e) {
